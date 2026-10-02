@@ -40,6 +40,9 @@ REGRAS DE RESPOSTA:
 - Seja breve: respostas de chat, não parágrafos longos.
 `;
 
+// Modelo da Groq. llama-3.3-70b-versatile foi desativado em 16/08/2026 — use este ou "qwen/qwen3.6-27b".
+const GROQ_MODEL = "openai/gpt-oss-120b";
+
 // Troque pelo domínio real do seu site depois de publicar (ex: "https://evertongremio41-jpg.github.io")
 const ALLOWED_ORIGIN = "*"; // Deixe "*" enquanto testa; depois restrinja pro seu domínio.
 
@@ -64,33 +67,28 @@ export default {
       // Limita histórico enviado (evita abuso / custo alto)
       const trimmed = messages.slice(-12);
 
-      const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+      const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": env.ANTHROPIC_API_KEY, // configurado como secret, nunca no código
-          "anthropic-version": "2023-06-01",
+          "Authorization": `Bearer ${env.GROQ_API_KEY}`, // configurado como secret, nunca no código
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
+          model: GROQ_MODEL,
+          messages: [{ role: "system", content: SITE_CONTEXT }, ...trimmed],
+          temperature: 0.7,
           max_tokens: 500,
-          system: SITE_CONTEXT,
-          messages: trimmed,
         }),
       });
 
-      if (!anthropicRes.ok) {
-        const errText = await anthropicRes.text();
-        console.error("Anthropic API error:", errText);
+      if (!groqRes.ok) {
+        const errText = await groqRes.text();
+        console.error("Groq API error:", errText);
         return jsonResponse({ error: "Erro ao consultar a IA" }, 502);
       }
 
-      const data = await anthropicRes.json();
-      const reply = (data.content || [])
-        .filter((b) => b.type === "text")
-        .map((b) => b.text)
-        .join("\n")
-        .trim();
+      const data = await groqRes.json();
+      const reply = data.choices?.[0]?.message?.content?.trim() || "";
 
       return jsonResponse({ reply });
     } catch (err) {
@@ -113,4 +111,4 @@ function jsonResponse(obj, status = 200) {
     status,
     headers: { "Content-Type": "application/json", ...corsHeaders() },
   });
-}
+              }
