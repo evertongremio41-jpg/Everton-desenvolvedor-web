@@ -391,9 +391,6 @@
 </div>
 
 <script>
-
-  // URL do seu Cloudflare Worker (substitua pela URL real depois do deploy).
-  // Ex: "https://everton-chat.seu-usuario.workers.dev"
   const WORKER_URL = "https://evertonchat.everton-gremio41.workers.dev";
 
   let history = [];
@@ -439,17 +436,14 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: history })
       });
-
       const data = await res.json();
       typing.remove();
-
       if (data.reply) {
         addMessage('bot', data.reply);
         history.push({ role: 'assistant', content: data.reply });
       } else {
         throw new Error(data.error || 'Erro na resposta da API');
       }
-
     }catch(err){
       typing.remove();
       console.error(err);
@@ -458,6 +452,17 @@
       sendBtn.disabled = false;
     }
   }
+
+  // --- AUTO-ABRIR QUANDO ENTRAR NO SITE ---
+  window.addEventListener('load', () => {
+    // Só abre automaticamente 1 vez por sessão
+    if (!sessionStorage.getItem('chatAutoOpened')) {
+      setTimeout(() => {
+        toggleChat(true);
+        sessionStorage.setItem('chatAutoOpened', '1');
+      }, 1200);
+    }
+  });
 </script>
 
 </body>
